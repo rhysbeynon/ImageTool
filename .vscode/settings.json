@@ -1,0 +1,13 @@
+{
+    "vim.easymotion": false,
+    "vim.enableNeovim": false,
+    "vim.neovimUseConfigFile": false,
+    "vim.smartRelativeLine": true,
+    "vim.sneak": false,
+    "vim.statusBarColorControl": true,
+    "vim.foldfix": false,
+    "vim.highlightedyank.enable": false,
+    "editor.cursorSmoothCaretAnimation": "on",
+    "editor.smoothScrolling": true,
+    "vim.easymotionDimBackground": false
+}
