@@ -19,8 +19,8 @@ $elapsedTime = Measure-Command {
     $updatedLines = @() # This is for writing to salonOutcome
 
     # Create new log file
-    Write-Host "Log>" $logFileSize
-    New-Item $logFileSize -type file
+     Write-Host "Log>" $logFilePull
+    New-Item $logFilePull -type file
 
     # Retrieve salon information from the CSV file
     $header = Get-Content -Path $computerListFile -TotalCount 1

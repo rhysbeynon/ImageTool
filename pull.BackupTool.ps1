@@ -1,4 +1,4 @@
-# Description: This script pulls images from the source to the destination.
+# Description: This script pulls backups from the source to the destination.
 
 #Config File Import
 . "$PSScriptRoot\config.ps1"
@@ -21,9 +21,9 @@ $elapsedTime = Measure-Command{
     #Create new log file
 
     #logging logic
-    Write-Host "Log>" $logFilePull
-    New-Item $logFilePull -type file
-    New-Item $logFilePullError -type file         
+    Write-Host "Log>" $logFilePullBackup
+    New-Item $logFilePullBackup -type file
+    New-Item $logFilePullErrorBackup -type file         
 
     ###Image resize, sync, and log###
     $header = Get-Content -Path $computerListFile -TotalCount 1
@@ -40,6 +40,9 @@ $elapsedTime = Measure-Command{
         $pushOutcome = $parts[3].Trim()
         $salonLocked = $parts[4].Trim() #This is changed on every loop depending on prior operation
 
+        # Set salon short code for backup folders
+            $SalonCode = $SalonName -replace '^salon-|-(2|3|4|5|6|7|8|9|NEW)$'
+
         Write-Host $salonName ":" -NoNewLine
 
         #####################################################################################
@@ -49,52 +52,36 @@ $elapsedTime = Measure-Command{
 
         if ($salonLocked -eq "1") {
             Write-Host "Salon is locked. Please check readme.md for more information."
-            $pullOutcome = 1
-            $updatedLine = "$salonId,$salonName,$pullOutcome,$pushOutcome,$salonLocked"
-            $updatedLines += $updatedLine
             return
         }
 
-        Write-Host "Pulling images from:" $salonName "..."
-
-        #Temporary salonOutcome value. Assumes success until error occurs (0 = success 1 = fail)
-        $pullOutcome = 0
+        Write-Host "Pulling backup files from:" $salonName "..."
 
         try {
-            Get-ChildItem $source -ErrorAction Stop
+            Get-ChildItem $backupSource -ErrorAction Stop
             #copy procedure runs if no catches are present
-            robocopy $source $destination /XN /E /NP /NFL /NJH /LOG+:$logFilePull
+            $robocopyBackupOutput = robocopy $backupSource $BackupDestination /XN /E /COMPRESS /MT:128 /NJH /NFL /NP /LOG+:$logFilePullBackup
         } catch [System.UnauthorizedAccessException] {
             Write-Host "$($_.TargetObject): Access denied"
-            Add-Content $logFilePullError "$($_.TargetObject): Access denied"
-            #sets outcome to 1 if operation fails
-            $pullOutcome = 1
+            Add-Content $logFilePullErrorBackup "$($_.TargetObject): Access denied"
         } catch [System.Management.Automation.ItemNotFoundException] {
             Write-Host "$($_.TargetObject): Path not found"
-            Add-Content $logFilePullError "$($_.TargetObject): Path not found"
-            #sets outcome to 1 if operation fails
-            $pullOutcome = 1
+            Add-Content $logFilePullErrorBackup "$($_.TargetObject): Path not found"
         }
 
-        #Constructs the updated line with the new outcome
-        $updatedLine = "$salonId,$salonName,$pullOutcome,$pushOutcome,$salonLocked"
-        $updatedLines += $updatedLine
+         if ($robocopyBackupOutput -match '^\s*Bytes : 0 ') {
+        Write-Host "Robocopy copied 0 items."
+        Add-Content $logFilePullErrorBackup "Robocopy copied 0 items."
+        }
 
         Write-Host $salonName ":" -NoNewLine
         Write-Host "...Done."
     }
-
-    #writes to the CSV record AFTER loop for safety
-    Set-Content -Path $computerListFile -Value $header
-    Add-Content -Path $computerListFile -Value $updatedLines
-
-    #####################################################################################
-
 }
 
-if (Test-Path $logFilePullError -and (Get-Item $logFilePullError).length -lt 1KB) {
-    # Delete the file
-    Remove-Item $logFilePullError -Force
-}
+#deletes empty log files
+$filesToDelete = Get-ChildItem -Path $logFilePullBackupLocation | Where-Object { $_.Length -eq 0KB }
+$filesToDelete | Remove-Item -Force
 
+#Writes elapsed time to console
 Write-Host "Pull:Total elapsed time: $($elapsedTime.TotalMilliseconds) Milliseconds or $($elapsedTime.TotalMinutes) Minutes"
