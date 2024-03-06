@@ -1,7 +1,7 @@
 # Lextan Image Tool
 Image tool for Resizing images and backing them up to a central destination.  
   
-  Version 1.0  
+  Version 1.3  
 
   *Created 31/01/2024 RB/NR*
 
